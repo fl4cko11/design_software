@@ -1,0 +1,9 @@
+diff_report_*.txt
+system_report_*.csv
+system_monitor.log
+.system_monitor.pid
+.system_monitor.lock
+.system_monitor.control.lock
+*.errors.txt
+*.count.txt
+explain.md
