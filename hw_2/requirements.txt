@@ -1,0 +1,4 @@
+# CPython 3.13, Linux amd64/arm64; версия и хеши wheel-файлов зафиксированы.
+psycopg2-binary==2.9.13 \
+    --hash=sha256:f04ada42bcd537adbaf8b7f3140237a204e452a88d0c1831cfce69f7d2e59f4e \
+    --hash=sha256:aa37089795bd9701576edc2eb5849ce77a439eda9dfdfa47857449332cfa5292
