@@ -1,0 +1,76 @@
+# Поле version оставлено по условию ДЗ; современный Compose может предупредить,
+# что оно устарело, поскольку использует актуальную Compose Specification.
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:1.30.6-alpine@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - frontend
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      target: runtime
+    image: design-hw2-app:1.0
+    environment:
+      APP_PORT: "8080"
+      APP_MESSAGE: "${APP_MESSAGE:-Hello from Docker Compose!}"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: "${POSTGRES_DB:-homework}"
+      DB_USER: "${POSTGRES_USER:-homework}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в .env}"
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    restart: unless-stopped
+
+  db:
+    image: postgres:17.11-alpine3.24@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-homework}"
+      POSTGRES_USER: "${POSTGRES_USER:-homework}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в .env}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  frontend:
+  backend:
+    internal: true
+
+volumes:
+  pgdata:
