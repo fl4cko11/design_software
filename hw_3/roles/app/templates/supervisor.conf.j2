@@ -1,0 +1,9 @@
+[program:hw3-app]
+command=/opt/hw3-app/start.sh
+directory=/opt/hw3-app
+user=hw3app
+autostart=true
+autorestart=true
+startsecs=1
+stdout_logfile=/var/log/hw3-app.log
+redirect_stderr=true

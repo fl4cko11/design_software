@@ -1,0 +1,23 @@
+$ docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+NAME                STATUS                    PORTS
+hw_3-app-1          Up 2 seconds (healthy)    
+hw_3-controller-1   Up 45 seconds (healthy)   
+hw_3-nginx-1        Up 2 seconds (healthy)    127.0.0.1:8080->80/tcp
+
+$ docker compose exec -T app supervisorctl status hw3-app
+hw3-app                          RUNNING   pid 20, uptime 0:00:11
+
+$ curl -i http://127.0.0.1:8080/health
+HTTP/1.1 200 OK
+Server: nginx
+Date: Sat, 14 Nov 2026 18:08:37 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 31
+Connection: keep-alive
+
+{"status": "ok", "app": "hw_3"}
+
+$ docker compose exec -T controller ansible-playbook site.yml
+app                        : ok=13   changed=0    unreachable=0    failed=0   
+nginx                      : ok=12   changed=0    unreachable=0    failed=0   
+

@@ -1,0 +1,36 @@
+x-target: &target
+  build:
+    context: .
+    dockerfile: docker/target.Dockerfile
+
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: docker/controller.Dockerfile
+    volumes:
+      - public_key:/keys
+      - .:/lab:ro
+  nginx:
+    <<: *target
+    volumes:
+      - public_key:/keys:ro
+    depends_on:
+      controller:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"
+  app:
+    <<: *target
+    volumes:
+      - public_key:/keys:ro
+    depends_on:
+      controller:
+        condition: service_healthy
+
+networks:
+  default:
+    name: "${COMPOSE_PROJECT_NAME:-hw_3}_lab"
+
+volumes:
+  public_key:

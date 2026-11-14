@@ -1,0 +1,82 @@
+---
+- name: Проверить конфигурацию приложения
+  ansible.builtin.assert:
+    that:
+      - app_port | int >= 1024
+      - app_port | int <= 65535
+      - app_message | length > 0
+
+- name: Установить Python и Supervisor
+  ansible.builtin.apt:
+    name:
+      - python3
+      - supervisor
+    update_cache: true
+    cache_valid_time: 3600
+    install_recommends: false
+    policy_rc_d: 101
+
+- name: Создать системного пользователя приложения
+  ansible.builtin.user:
+    name: hw3app
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Создать каталоги приложения и конфигурации
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /opt/hw3-app
+    - /etc/hw3-app
+
+- name: Разместить исходники и скрипт запуска
+  ansible.builtin.copy:
+    src: "{{ item.name }}"
+    dest: "/opt/hw3-app/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - {name: app.py, mode: "0644"}
+    - {name: start.sh, mode: "0755"}
+  notify: Применить конфигурацию приложения
+
+- name: Настроить переменные приложения
+  ansible.builtin.template:
+    src: app.env.j2
+    dest: /etc/hw3-app/app.env
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Применить конфигурацию приложения
+
+- name: Настроить запуск приложения через Supervisor
+  ansible.builtin.template:
+    src: supervisor.conf.j2
+    dest: /etc/supervisor/conf.d/hw3-app.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Применить конфигурацию приложения
+
+- name: Запустить Supervisor
+  ansible.builtin.service:
+    name: supervisor
+    state: started
+
+- name: Применить изменения до проверки HTTP
+  ansible.builtin.meta: flush_handlers
+
+- name: Проверить локальный эндпоинт приложения
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ app_port }}/health"
+    status_code: 200
+  register: app_health
+  until: app_health.status == 200
+  retries: 10
+  delay: 1
