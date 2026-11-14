@@ -1,0 +1,58 @@
+---
+- name: Установить Nginx
+  ansible.builtin.apt:
+    name: nginx
+    update_cache: true
+    cache_valid_time: 3600
+    install_recommends: false
+    policy_rc_d: 101
+
+- name: Установить конфигурацию обратного прокси
+  ansible.builtin.template:
+    src: hw3.conf.j2
+    dest: /etc/nginx/sites-available/hw3
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Перечитать конфигурацию Nginx
+
+- name: Включить сайт
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/hw3
+    dest: /etc/nginx/sites-enabled/hw3
+    state: link
+  notify: Перечитать конфигурацию Nginx
+
+- name: Отключить стандартный сайт
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Перечитать конфигурацию Nginx
+
+- name: Проверить синтаксис Nginx до запуска или перезагрузки
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Запустить Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+
+- name: Применить изменения до проверки прокси
+  ansible.builtin.meta: flush_handlers
+
+- name: Проверить ответ приложения через Nginx
+  ansible.builtin.uri:
+    url: http://127.0.0.1/health
+    status_code: 200
+    return_content: true
+  register: proxy_health
+  until: proxy_health.status == 200
+  retries: 10
+  delay: 1
+
+- name: Проверить, что ответ пришел от приложения
+  ansible.builtin.assert:
+    that:
+      - proxy_health.json.status == 'ok'
+      - proxy_health.json.app == 'hw_3'

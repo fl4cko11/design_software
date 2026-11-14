@@ -1,0 +1,48 @@
+---
+- name: Подготовка чистых серверов
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Дождаться SSH без зависимости от Python
+      ansible.builtin.wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        search_regex: SSH
+        timeout: 30
+      delegate_to: localhost
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+    - name: Проверить наличие Python и установить его при необходимости
+      ansible.builtin.raw: |
+        set -e
+        if [ ! -x /usr/bin/python3 ]; then
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3
+          echo BOOTSTRAPPED
+        fi
+      register: bootstrap
+      changed_when: "'BOOTSTRAPPED' in bootstrap.stdout"
+
+    - name: Собрать сведения о сервере
+      ansible.builtin.setup:
+
+    - name: Проверить ОС и права на установку пакетов
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution == 'Debian'
+          - ansible_facts.distribution_major_version == '12'
+          - ansible_facts.user_uid == 0
+        fail_msg: Для лабораторной нужен Debian 12 с административным SSH-доступом.
+
+- name: Развертывание приложения
+  hosts: app_hosts
+  gather_facts: false
+  roles:
+    - app
+
+- name: Установка и настройка обратного прокси
+  hosts: proxy_hosts
+  gather_facts: false
+  roles:
+    - nginx

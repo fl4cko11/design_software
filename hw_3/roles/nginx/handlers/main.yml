@@ -1,0 +1,5 @@
+---
+- name: Перечитать конфигурацию Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded

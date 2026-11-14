@@ -1,0 +1,12 @@
+all:
+  vars:
+    ansible_user: root
+    ansible_python_interpreter: /usr/bin/python3
+    app_port: 8000
+  children:
+    app_hosts:
+      hosts:
+        app:
+    proxy_hosts:
+      hosts:
+        nginx:

@@ -1,0 +1,12 @@
+---
+- name: Перечитать конфигурацию Supervisor
+  ansible.builtin.command: supervisorctl reread
+  listen: Применить конфигурацию приложения
+
+- name: Зарегистрировать программу в Supervisor
+  ansible.builtin.command: supervisorctl update
+  listen: Применить конфигурацию приложения
+
+- name: Перезапустить приложение
+  ansible.builtin.command: supervisorctl restart hw3-app
+  listen: Применить конфигурацию приложения
